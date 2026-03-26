@@ -2,20 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#ff5a93" />
   <meta name="description" content="A modern PWA shopping list with multiple lists, offline support, and a clean pink theme." />
 
+  <!-- PWA “standalone / hide URL bar” hints -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PinkList" />
+
+  <!-- Ensure relative paths resolve correctly even when hosted in a subfolder -->
+  <base href="./" />
+
   <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Icons: explicit relative paths + SVG data-URI fallback -->
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+  <link rel="icon"
+        href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%23ff5a93"/%3E%3Cstop offset="1" stop-color="%23ff76a7"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="64" height="64" rx="16" fill="url(%23g)"/%3E%3Cpath d="M18 20h28v6H18zm0 12h28v6H18zm0 12h20v6H18z" fill="rgba(255,255,255,.92)"/%3E%3C/svg%3E'
+        type="image/svg+xml" />
 
   <title>PinkList — Shopping List PWA</title>
 
   <style>
     :root{
       --bg: #ffffff;
-      --surface: #ffffff;
       --text: #1f1f25;
       --muted: #6b6b76;
       --border: rgba(20, 20, 30, .08);
@@ -25,11 +38,8 @@
       --pink-soft: #fff1f6;
 
       --radius: 18px;
-      --radius-sm: 14px;
-
       --shadow: 0 10px 30px rgba(20, 20, 30, .08);
       --shadow-soft: 0 8px 22px rgba(20, 20, 30, .06);
-
       --focus: 0 0 0 4px rgba(255, 90, 147, .20);
 
       --max: 980px;
@@ -37,9 +47,10 @@
 
     *{ box-sizing: border-box; }
     html, body{ height: 100%; }
+
     body{
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       color: var(--text);
       background:
         radial-gradient(900px 400px at 10% 0%, rgba(255,90,147,.10), transparent 60%),
@@ -47,22 +58,14 @@
         var(--bg);
     }
 
-    a{ color: inherit; }
-
-    /* Layout */
-    .app{
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 18px 14px 110px;
-    }
-
     header{
       position: sticky;
       top: 0;
       z-index: 10;
       backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(255,255,255,.88), rgba(255,255,255,.68));
+      background: linear-gradient(to bottom, rgba(255,255,255,.90), rgba(255,255,255,.70));
       border-bottom: 1px solid rgba(20,20,30,.06);
+      padding-top: env(safe-area-inset-top);
     }
 
     .header-inner{
@@ -91,9 +94,10 @@
       display: grid;
       place-items: center;
       color: white;
-      font-weight: 800;
-      letter-spacing: .5px;
+      font-weight: 900;
+      letter-spacing: .4px;
       user-select: none;
+      flex: 0 0 auto;
     }
 
     .brand h1{
@@ -116,6 +120,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex: 0 0 auto;
     }
 
     .btn{
@@ -125,7 +130,7 @@
       color: var(--text);
       border-radius: 999px;
       padding: 10px 12px;
-      font-weight: 650;
+      font-weight: 800;
       font-size: 13px;
       cursor: pointer;
       transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
@@ -133,37 +138,44 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      user-select: none;
     }
     .btn:hover{ transform: translateY(-1px); }
     .btn:active{ transform: translateY(0px) scale(.99); }
     .btn:focus{ outline: none; box-shadow: var(--shadow-soft), var(--focus); }
+
     .btn-primary{
       border-color: rgba(255,90,147,.25);
       background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
       color: white;
       box-shadow: 0 10px 26px rgba(255,90,147,.22);
     }
+    .btn-ghost{ background: rgba(255,255,255,.6); }
 
-    .btn-ghost{
-      background: rgba(255,255,255,.6);
+    .icon{
+      width: 18px;
+      height: 18px;
+      display: block;
+      fill: currentColor;
     }
 
-    /* Cards / Lists */
+    main{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 18px 14px 34px;
+    }
+
     .lists{
-      margin-top: 14px;
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
     }
-
     @media (min-width: 720px){
-      .lists{
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
+      .lists{ grid-template-columns: 1fr 1fr; gap: 14px; }
     }
 
-    .card{
+    /* Each list is a <details> dropdown */
+    details.card{
       --accent: var(--pink);
       --tint: rgba(255,90,147,.12);
 
@@ -177,13 +189,12 @@
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
       animation: pop .18s ease both;
     }
-
     @keyframes pop{
       from{ opacity: 0; transform: translateY(6px) scale(.99); }
       to{ opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .card::before{
+    details.card::before{
       content: "";
       position: absolute;
       inset: 0;
@@ -193,39 +204,56 @@
       pointer-events: none;
     }
 
-    .card:hover{
+    details.card:hover{
       box-shadow: 0 12px 34px rgba(20, 20, 30, .10);
       border-color: rgba(255,90,147,.18);
       transform: translateY(-1px);
     }
 
-    .card-inner{
+    summary{
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      padding: 12px 14px;
       position: relative;
-      padding: 14px 14px 12px;
-    }
-
-    .card-header{
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
       gap: 10px;
-      margin-bottom: 12px;
+      align-items: start;
+    }
+    summary::-webkit-details-marker{ display:none; }
+
+    .sum-left{ min-width: 0; }
+
+    .title-row{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
 
-    .title-wrap{ min-width: 0; flex: 1; }
+    .chev{
+      width: 18px;
+      height: 18px;
+      color: rgba(35,35,45,.65);
+      transition: transform .15s ease;
+      flex: 0 0 auto;
+    }
+    details[open] .chev{ transform: rotate(180deg); }
 
     .list-title{
-      width: 100%;
+      flex: 1;
+      min-width: 0;
       border: 0;
       outline: none;
       background: transparent;
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: .2px;
       padding: 6px 8px;
-      margin: -6px -8px 0;
+      margin: -6px -8px;
       border-radius: 12px;
-      transition: background .12s ease, box-shadow .12s ease;
     }
     .list-title:focus{
       background: rgba(255,255,255,.9);
@@ -236,10 +264,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-top: 6px;
+      margin-top: 8px;
       color: var(--muted);
       font-size: 12px;
       padding-left: 2px;
+      flex-wrap: wrap;
     }
 
     .pill{
@@ -251,12 +280,21 @@
       border: 1px solid rgba(20,20,30,.07);
       background: rgba(255,255,255,.75);
     }
+
     .dot{
       width: 9px;
       height: 9px;
       border-radius: 99px;
       background: var(--accent);
       box-shadow: 0 0 0 3px rgba(255,90,147,.15);
+    }
+
+    .sum-actions{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      z-index: 2;
     }
 
     .icon-btn{
@@ -268,25 +306,30 @@
       cursor: pointer;
       display: grid;
       place-items: center;
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     }
     .icon-btn:hover{
       transform: translateY(-1px);
-      border-color: rgba(255,90,147,.18);
       box-shadow: 0 10px 22px rgba(20,20,30,.08);
+      border-color: rgba(255,90,147,.18);
     }
     .icon-btn:active{ transform: translateY(0px) scale(.99); }
-    .icon-btn:focus{ outline: none; box-shadow: var(--shadow-soft), var(--focus); }
+    .icon-btn:focus{ outline:none; box-shadow: var(--shadow-soft), var(--focus); }
 
-    .icon{
-      width: 18px;
-      height: 18px;
-      display: block;
-      fill: currentColor;
-      color: rgba(35,35,45,.8);
+    .divider{
+      height: 1px;
+      background: rgba(20,20,30,.06);
+      margin: 0 14px 12px;
+      position: relative;
+      z-index: 1;
     }
 
-    /* Add item bar */
+    .card-body{
+      position: relative;
+      z-index: 1;
+      padding: 0 14px 14px;
+    }
+
     .addbar{
       display: flex;
       align-items: center;
@@ -308,7 +351,6 @@
       font-size: 14px;
       border-radius: 12px;
     }
-    .addbar input:focus{ box-shadow: none; }
 
     .addbar .mini{
       border: 0;
@@ -317,13 +359,12 @@
       padding: 10px 12px;
       background: var(--accent);
       color: white;
-      font-weight: 800;
+      font-weight: 900;
       transition: transform .12s ease, filter .12s ease;
     }
     .addbar .mini:hover{ transform: translateY(-1px); filter: brightness(1.02); }
     .addbar .mini:active{ transform: translateY(0px) scale(.99); }
 
-    /* Items */
     .items{
       list-style: none;
       padding: 0;
@@ -343,7 +384,6 @@
       border: 1px solid rgba(20,20,30,.07);
       transition: transform .12s ease, opacity .12s ease, background .12s ease;
     }
-
     .item:hover{
       transform: translateY(-1px);
       background: rgba(255,255,255,.86);
@@ -357,11 +397,11 @@
       display: grid;
       place-items: center;
       cursor: pointer;
-      transition: background .12s ease, border-color .12s ease, transform .12s ease;
       background: rgba(255,255,255,.85);
+      transition: background .12s ease, border-color .12s ease;
     }
-    .check input{ display: none; }
-    .check svg{ width: 16px; height: 16px; fill: transparent; transition: fill .12s ease; }
+    .check input{ display:none; }
+    .check svg{ width:16px; height:16px; fill: transparent; transition: fill .12s ease; }
 
     .item.done{ opacity: .72; }
     .item.done .text{
@@ -407,7 +447,6 @@
     }
     .mini-btn:active{ transform: translateY(0px) scale(.99); }
 
-    /* Empty state */
     .empty{
       border: 1px dashed rgba(255,90,147,.35);
       background: rgba(255, 241, 246, .65);
@@ -415,35 +454,10 @@
       padding: 16px;
       color: rgba(60,60,70,.85);
       box-shadow: 0 10px 22px rgba(20,20,30,.05);
+      margin-top: 14px;
     }
     .empty h2{ margin: 0 0 6px; font-size: 15px; }
     .empty p{ margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
-
-    /* Floating action button (mobile convenience) */
-    .fab{
-      position: fixed;
-      right: 14px;
-      bottom: 16px;
-      z-index: 20;
-      width: 54px;
-      height: 54px;
-      border-radius: 999px;
-      border: 0;
-      cursor: pointer;
-      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
-      box-shadow: 0 14px 34px rgba(255,90,147,.30);
-      color: white;
-      display: grid;
-      place-items: center;
-      transition: transform .12s ease, filter .12s ease;
-    }
-    .fab:hover{ transform: translateY(-2px); filter: brightness(1.02); }
-    .fab:active{ transform: translateY(0) scale(.99); }
-    .fab:focus{ outline: none; box-shadow: 0 14px 34px rgba(255,90,147,.30), var(--focus); }
-
-    @media (min-width: 720px){
-      .fab{ display: none; }
-    }
 
     /* Dialog */
     dialog{
@@ -460,16 +474,8 @@
       backdrop-filter: blur(2px);
     }
     .dlg{ padding: 14px; }
-    .dlg h3{
-      margin: 0 0 10px;
-      font-size: 15px;
-      letter-spacing: .2px;
-    }
-    .field{
-      display: grid;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
+    .dlg h3{ margin: 0 0 10px; font-size: 15px; letter-spacing: .2px; }
+    .field{ display: grid; gap: 8px; margin-bottom: 12px; }
     .field label{ font-size: 12px; color: var(--muted); }
     .field input{
       border: 1px solid rgba(20,20,30,.10);
@@ -492,13 +498,7 @@
       border-top: 1px solid rgba(20,20,30,.06);
       background: rgba(255,255,255,.8);
     }
-
-    .note{
-      margin: 10px 0 0;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
+    .note{ margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.35; }
 
     @media (prefers-reduced-motion: reduce){
       *{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
@@ -516,41 +516,44 @@
           <p>Offline-ready shopping lists</p>
         </div>
       </div>
+
       <div class="actions">
         <button class="btn btn-ghost" id="installBtn" type="button" style="display:none;">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4.01 4a1 1 0 0 1-1.4 0l-4.01-4a1 1 0 1 1 1.4-1.42l2.31 2.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/></svg>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4.01 4a1 1 0 0 1-1.4 0l-4.01-4a1 1 0 1 1 1.4-1.42l2.31 2.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/>
+          </svg>
           Install
         </button>
-        <button class="btn btn-primary" id="newListBtn" type="button">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/></svg>
-          New list
+
+        <!-- One create list button -->
+        <button class="btn btn-primary" id="createListBtn" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/>
+          </svg>
+          Create list
         </button>
       </div>
     </div>
   </header>
 
-  <main class="app">
+  <main>
     <section id="lists" class="lists" aria-label="Shopping lists"></section>
 
     <section id="empty" class="empty" style="display:none;">
       <h2>No lists yet</h2>
-      <p>Create your first list. Everything saves automatically and works offline once installed.</p>
+      <p>Tap “Create list”. Everything saves automatically and works offline once installed.</p>
     </section>
   </main>
-
-  <button class="fab" id="fabNewList" type="button" aria-label="Create new list">
-    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="color:white;"><path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/></svg>
-  </button>
 
   <!-- Dialog: create list -->
   <dialog id="listDialog">
     <div class="dlg">
       <h3>Create a new list</h3>
       <div class="field">
-        <label for="listTitleInput">List title</label>
-        <input id="listTitleInput" type="text" placeholder="e.g., Weekly groceries" autocomplete="off" />
+        <label for="listTitleInput">List name</label>
+        <input id="listTitleInput" type="text" placeholder="e.g., Sunday shopping" autocomplete="off" />
       </div>
-      <p class="note">Tip: You can rename a list anytime by tapping its title.</p>
+      <p class="note">Tip: You can rename a list anytime by tapping its name.</p>
     </div>
     <div class="dlg-actions">
       <button class="btn" id="cancelListDialog" type="button">Cancel</button>
@@ -575,9 +578,23 @@
 
   <script>
     /* ---------------------------
+       “Hidden URL embedded” (standalone feel)
+       - If installed, display-mode: standalone will remove URL bar.
+       - This extra step keeps the URL clean (no accidental query strings).
+    ----------------------------*/
+    (function normalizeUrl(){
+      try{
+        const url = new URL(location.href);
+        if(url.search || url.hash){
+          history.replaceState(null, "", url.pathname);
+        }
+      }catch{}
+    })();
+
+    /* ---------------------------
        Storage + State
     ----------------------------*/
-    const STORAGE_KEY = "pinklist:pwa:lists:v1";
+    const STORAGE_KEY = "pinklist:pwa:lists:v2";
 
     const ACCENTS = [
       { accent: "#ff5a93", tint: "rgba(255,90,147,.14)" },
@@ -622,8 +639,7 @@
     const $editDialog = document.getElementById("editDialog");
     const $editInput = document.getElementById("editInput");
 
-    const $newListBtn = document.getElementById("newListBtn");
-    const $fabNewList = document.getElementById("fabNewList");
+    const $createListBtn = document.getElementById("createListBtn");
 
     const $installBtn = document.getElementById("installBtn");
     let deferredInstall = null;
@@ -652,6 +668,14 @@
       return done;
     }
 
+    function findList(listId){
+      return state.lists.find(l => l.id === listId) || null;
+    }
+
+    function findItem(list, itemId){
+      return list.items.find(i => i.id === itemId) || null;
+    }
+
     function render(){
       $lists.innerHTML = "";
 
@@ -663,40 +687,57 @@
         const done = countDone(list.items);
         const total = list.items.length;
 
-        const card = document.createElement("article");
-        card.className = "card";
-        card.style.setProperty("--accent", accent);
-        card.style.setProperty("--tint", tint);
-        card.dataset.listId = list.id;
+        const details = document.createElement("details");
+        details.className = "card";
+        details.dataset.listId = list.id;
+        details.style.setProperty("--accent", accent);
+        details.style.setProperty("--tint", tint);
 
-        card.innerHTML = `
-          <div class="card-inner">
-            <div class="card-header">
-              <div class="title-wrap">
+        // Keep first list open by default for nicer UX
+        if(state.lists[0]?.id === list.id && total === 0){
+          details.open = true;
+        }
+
+        details.innerHTML = `
+          <summary>
+            <div class="sum-left">
+              <div class="title-row">
+                <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="currentColor" d="M7 10a1 1 0 0 1 1.7-.7l3.3 3.3 3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4A1 1 0 0 1 7 10Z"/>
+                </svg>
+
                 <input
                   class="list-title"
                   value="${escapeHtml(list.title)}"
-                  aria-label="List title"
+                  aria-label="List name"
                   data-action="rename-list"
                 />
-                <div class="meta">
-                  <span class="pill" title="List accent">
-                    <span class="dot" aria-hidden="true"></span>
-                    <span>List</span>
-                  </span>
-                  <span class="pill" title="Progress">${done}/${total} done</span>
-                </div>
               </div>
-              <button class="icon-btn" type="button" data-action="delete-list" aria-label="Delete list">
+
+              <div class="meta">
+                <span class="pill" title="List color">
+                  <span class="dot" aria-hidden="true"></span>
+                  <span>List</span>
+                </span>
+                <span class="pill" title="Progress">${done}/${total} done</span>
+              </div>
+            </div>
+
+            <div class="sum-actions">
+              <button class="icon-btn" type="button" data-action="delete-list" aria-label="Delete list" title="Delete list">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
                 </svg>
               </button>
             </div>
+          </summary>
 
+          <div class="divider"></div>
+
+          <div class="card-body">
             <form class="addbar" data-action="add-item" autocomplete="off">
               <input type="text" name="text" placeholder="Add an item…" aria-label="Add item" />
-              <button class="mini" type="submit" aria-label="Add">Add</button>
+              <button class="mini" type="submit">Add</button>
             </form>
 
             <ul class="items" aria-label="Items">
@@ -712,12 +753,12 @@
                   <div class="text" data-action="quick-edit" title="Double-click to edit">${escapeHtml(item.text)}</div>
 
                   <div class="item-actions">
-                    <button class="mini-btn" type="button" data-action="edit-item" aria-label="Edit item">
+                    <button class="mini-btn" type="button" data-action="edit-item" aria-label="Edit item" title="Edit">
                       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M4 17.5V20a1 1 0 0 0 1 1h2.5a1 1 0 0 0 .7-.3l10.8-10.8a2 2 0 0 0 0-2.8l-2.1-2.1a2 2 0 0 0-2.8 0L3.3 15.8a1 1 0 0 0-.3.7Zm14.6-9.8L17.3 6.4a.5.5 0 0 0-.7 0l-1.2 1.2 2 2 1.2-1.2a.5.5 0 0 0 0-.7Z"/>
                       </svg>
                     </button>
-                    <button class="mini-btn" type="button" data-action="delete-item" aria-label="Delete item">
+                    <button class="mini-btn" type="button" data-action="delete-item" aria-label="Delete item" title="Delete">
                       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
                       </svg>
@@ -729,16 +770,8 @@
           </div>
         `;
 
-        $lists.appendChild(card);
+        $lists.appendChild(details);
       }
-    }
-
-    function findList(listId){
-      return state.lists.find(l => l.id === listId) || null;
-    }
-
-    function findItem(list, itemId){
-      return list.items.find(i => i.id === itemId) || null;
     }
 
     /* ---------------------------
@@ -747,7 +780,7 @@
     function openNewListDialog(){
       // Fallback for browsers without <dialog> support
       if(!$listDialog || typeof $listDialog.showModal !== "function"){
-        const title = prompt("New list title:", "New list");
+        const title = prompt("New list name:", "Sunday shopping");
         if(title !== null) createList(title);
         return;
       }
@@ -765,7 +798,8 @@
       render();
 
       requestAnimationFrame(() => {
-        const card = document.querySelector(`.card[data-list-id="${CSS.escape(list.id)}"]`);
+        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(list.id)}"]`);
+        if(card) card.open = true;
         card?.querySelector('.addbar input')?.focus();
       });
     }
@@ -784,6 +818,7 @@
       const t = (title || "").trim() || "Untitled list";
       list.title = t;
       save();
+      // Render keeps things consistent (and updates progress pill if needed)
       render();
     }
 
@@ -801,7 +836,8 @@
       render();
 
       requestAnimationFrame(() => {
-        const card = document.querySelector(`.card[data-list-id="${CSS.escape(listId)}"]`);
+        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
+        if(card) card.open = true;
         const input = card?.querySelector('.addbar input');
         if(input){ input.focus(); input.value = ""; }
       });
@@ -815,6 +851,11 @@
       item.done = !item.done;
       save();
       render();
+
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
+        if(card) card.open = true;
+      });
     }
 
     function deleteItem(listId, itemId){
@@ -825,6 +866,11 @@
       list.items.splice(idx, 1);
       save();
       render();
+
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
+        if(card) card.open = true;
+      });
     }
 
     function openEditItem(listId, itemId){
@@ -863,19 +909,24 @@
 
       const t = ($editInput.value || "").trim();
       if(!t) return;
-      item.text = t;
 
+      item.text = t;
       save();
+
       $editDialog.close();
       editCtx = null;
+
       render();
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
+        if(card) card.open = true;
+      });
     }
 
     /* ---------------------------
        Events
     ----------------------------*/
-    $newListBtn.addEventListener("click", openNewListDialog);
-    $fabNewList.addEventListener("click", openNewListDialog);
+    $createListBtn.addEventListener("click", openNewListDialog);
 
     document.getElementById("cancelListDialog").addEventListener("click", () => $listDialog.close());
     document.getElementById("createListConfirm").addEventListener("click", () => {
@@ -905,26 +956,35 @@
       }
     });
 
+    // Delegation: add item
     $lists.addEventListener("submit", (e) => {
       const form = e.target.closest('form[data-action="add-item"]');
       if(!form) return;
 
       e.preventDefault();
-      const card = e.target.closest(".card");
+      const card = e.target.closest('details.card');
       const listId = card?.dataset?.listId;
       const input = form.querySelector('input[name="text"]');
       addItem(listId, input?.value);
     });
 
+    // Delegation: click actions
     $lists.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-action]");
       if(!btn) return;
 
-      const card = e.target.closest(".card");
+      const card = e.target.closest('details.card');
       const listId = card?.dataset?.listId;
       if(!listId) return;
 
       const action = btn.dataset.action;
+
+      // If clicking a button in <summary>, prevent toggle
+      const inSummary = !!e.target.closest("summary");
+      if(inSummary){
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
       if(action === "delete-list"){
         const list = findList(listId);
@@ -954,21 +1014,23 @@
       }
     });
 
+    // Double click on text to edit
     $lists.addEventListener("dblclick", (e) => {
       const text = e.target.closest('[data-action="quick-edit"]');
       if(!text) return;
 
-      const card = e.target.closest(".card");
+      const card = e.target.closest("details.card");
       const itemEl = e.target.closest(".item");
       const listId = card?.dataset?.listId;
       const itemId = itemEl?.dataset?.itemId;
       if(listId && itemId) openEditItem(listId, itemId);
     });
 
+    // Rename list
     $lists.addEventListener("change", (e) => {
       const titleInput = e.target.closest('input[data-action="rename-list"]');
       if(!titleInput) return;
-      const card = e.target.closest(".card");
+      const card = e.target.closest("details.card");
       const listId = card?.dataset?.listId;
       if(!listId) return;
       renameList(listId, titleInput.value);
@@ -977,7 +1039,7 @@
     $lists.addEventListener("blur", (e) => {
       const titleInput = e.target.closest('input[data-action="rename-list"]');
       if(!titleInput) return;
-      const card = e.target.closest(".card");
+      const card = e.target.closest("details.card");
       const listId = card?.dataset?.listId;
       if(!listId) return;
       renameList(listId, titleInput.value);
@@ -1014,33 +1076,25 @@
     async function registerSW(){
       if(!("serviceWorker" in navigator)) return;
       try{
-        await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        await navigator.serviceWorker.register("sw.js", { scope: "./" });
       }catch{
         // ignore
       }
     }
 
     /* ---------------------------
-       First run seed (optional)
+       Seed data (only if empty)
     ----------------------------*/
     function ensureSeed(){
       if(state.lists.length > 0) return;
       state.lists = [
         {
           id: uid(),
-          title: "Groceries",
+          title: "Sunday shopping",
           items: [
             { id: uid(), text: "Milk", done: false },
             { id: uid(), text: "Eggs", done: true },
             { id: uid(), text: "Coffee", done: false }
-          ]
-        },
-        {
-          id: uid(),
-          title: "Pharmacy",
-          items: [
-            { id: uid(), text: "Band-aids", done: false },
-            { id: uid(), text: "Vitamins", done: false }
           ]
         }
       ];
