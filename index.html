@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ff5a93" />
+  <meta name="description" content="A modern PWA shopping list with multiple lists, offline support, and a clean pink theme." />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+
+  <title>PinkList — Shopping List PWA</title>
+
+  <style>
+    :root{
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --text: #1f1f25;
+      --muted: #6b6b76;
+      --border: rgba(20, 20, 30, .08);
+
+      --pink: #ff5a93;
+      --pink-2: #ff76a7;
+      --pink-soft: #fff1f6;
+
+      --radius: 18px;
+      --radius-sm: 14px;
+
+      --shadow: 0 10px 30px rgba(20, 20, 30, .08);
+      --shadow-soft: 0 8px 22px rgba(20, 20, 30, .06);
+
+      --focus: 0 0 0 4px rgba(255, 90, 147, .20);
+
+      --max: 980px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; }
+    body{
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(900px 400px at 10% 0%, rgba(255,90,147,.10), transparent 60%),
+        radial-gradient(900px 400px at 90% 10%, rgba(255,118,167,.09), transparent 60%),
+        var(--bg);
+    }
+
+    a{ color: inherit; }
+
+    /* Layout */
+    .app{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 18px 14px 110px;
+    }
+
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(255,255,255,.88), rgba(255,255,255,.68));
+      border-bottom: 1px solid rgba(20,20,30,.06);
+    }
+
+    .header-inner{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .logo{
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      letter-spacing: .5px;
+      user-select: none;
+    }
+
+    .brand h1{
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.1;
+      letter-spacing: .2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand p{
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .actions{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn{
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.9);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-weight: 650;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+      box-shadow: 0 6px 18px rgba(20,20,30,.05);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn:focus{ outline: none; box-shadow: var(--shadow-soft), var(--focus); }
+    .btn-primary{
+      border-color: rgba(255,90,147,.25);
+      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
+      color: white;
+      box-shadow: 0 10px 26px rgba(255,90,147,.22);
+    }
+
+    .btn-ghost{
+      background: rgba(255,255,255,.6);
+    }
+
+    /* Cards / Lists */
+    .lists{
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 720px){
+      .lists{
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+    }
+
+    .card{
+      --accent: var(--pink);
+      --tint: rgba(255,90,147,.12);
+
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.86));
+      border: 1px solid rgba(20,20,30,.07);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      transform: translateZ(0);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      animation: pop .18s ease both;
+    }
+
+    @keyframes pop{
+      from{ opacity: 0; transform: translateY(6px) scale(.99); }
+      to{ opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .card::before{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(800px 300px at 20% 0%, var(--tint), transparent 60%),
+        radial-gradient(600px 250px at 90% 20%, rgba(255,255,255,.6), transparent 55%);
+      pointer-events: none;
+    }
+
+    .card:hover{
+      box-shadow: 0 12px 34px rgba(20, 20, 30, .10);
+      border-color: rgba(255,90,147,.18);
+      transform: translateY(-1px);
+    }
+
+    .card-inner{
+      position: relative;
+      padding: 14px 14px 12px;
+    }
+
+    .card-header{
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .title-wrap{ min-width: 0; flex: 1; }
+
+    .list-title{
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      padding: 6px 8px;
+      margin: -6px -8px 0;
+      border-radius: 12px;
+      transition: background .12s ease, box-shadow .12s ease;
+    }
+    .list-title:focus{
+      background: rgba(255,255,255,.9);
+      box-shadow: var(--focus);
+    }
+
+    .meta{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      padding-left: 2px;
+    }
+
+    .pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(20,20,30,.07);
+      background: rgba(255,255,255,.75);
+    }
+    .dot{
+      width: 9px;
+      height: 9px;
+      border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,90,147,.15);
+    }
+
+    .icon-btn{
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid rgba(20,20,30,.08);
+      background: rgba(255,255,255,.75);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .icon-btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,90,147,.18);
+      box-shadow: 0 10px 22px rgba(20,20,30,.08);
+    }
+    .icon-btn:active{ transform: translateY(0px) scale(.99); }
+    .icon-btn:focus{ outline: none; box-shadow: var(--shadow-soft), var(--focus); }
+
+    .icon{
+      width: 18px;
+      height: 18px;
+      display: block;
+      fill: currentColor;
+      color: rgba(35,35,45,.8);
+    }
+
+    /* Add item bar */
+    .addbar{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(20,20,30,.08);
+      border-radius: 16px;
+      box-shadow: 0 10px 22px rgba(20,20,30,.05);
+      margin-bottom: 10px;
+    }
+
+    .addbar input{
+      flex: 1;
+      border: 0;
+      outline: none;
+      background: transparent;
+      padding: 10px 10px;
+      font-size: 14px;
+      border-radius: 12px;
+    }
+    .addbar input:focus{ box-shadow: none; }
+
+    .addbar .mini{
+      border: 0;
+      cursor: pointer;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .addbar .mini:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+    .addbar .mini:active{ transform: translateY(0px) scale(.99); }
+
+    /* Items */
+    .items{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .item{
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(20,20,30,.07);
+      transition: transform .12s ease, opacity .12s ease, background .12s ease;
+    }
+
+    .item:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.86);
+    }
+
+    .check{
+      width: 26px;
+      height: 26px;
+      border-radius: 10px;
+      border: 1px solid rgba(20,20,30,.12);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      background: rgba(255,255,255,.85);
+    }
+    .check input{ display: none; }
+    .check svg{ width: 16px; height: 16px; fill: transparent; transition: fill .12s ease; }
+
+    .item.done{
+      opacity: .72;
+    }
+    .item.done .text{
+      text-decoration: line-through;
+      color: rgba(60,60,70,.7);
+    }
+    .item.done .check{
+      background: rgba(255,90,147,.12);
+      border-color: rgba(255,90,147,.35);
+    }
+    .item.done .check svg{
+      fill: rgba(255,90,147,.95);
+    }
+
+    .text{
+      font-size: 14px;
+      line-height: 1.2;
+      padding: 6px 8px;
+      border-radius: 12px;
+      user-select: none;
+      word-break: break-word;
+    }
+
+    .item-actions{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mini-btn{
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(20,20,30,.08);
+      background: rgba(255,255,255,.78);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .mini-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(20,20,30,.07);
+      border-color: rgba(255,90,147,.18);
+    }
+    .mini-btn:active{ transform: translateY(0px) scale(.99); }
+
+    /* Empty state */
+    .empty{
+      border: 1px dashed rgba(255,90,147,.35);
+      background: rgba(255, 241, 246, .65);
+      border-radius: var(--radius);
+      padding: 16px;
+      color: rgba(60,60,70,.85);
+      box-shadow: 0 10px 22px rgba(20,20,30,.05);
+    }
+    .empty h2{ margin: 0 0 6px; font-size: 15px; }
+    .empty p{ margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+    /* Floating action button (mobile convenience) */
+    .fab{
+      position: fixed;
+      right: 14px;
+      bottom: 16px;
+      z-index: 20;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
+      box-shadow: 0 14px 34px rgba(255,90,147,.30);
+      color: white;
+      display: grid;
+      place-items: center;
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .fab:hover{ transform: translateY(-2px); filter: brightness(1.02); }
+    .fab:active{ transform: translateY(0) scale(.99); }
+    .fab:focus{ outline: none; box-shadow: 0 14px 34px rgba(255,90,147,.30), var(--focus); }
+
+    @media (min-width: 720px){
+      .fab{ display: none; }
+    }
+
+    /* Dialog */
+    dialog{
+      border: 1px solid rgba(20,20,30,.10);
+      border-radius: 18px;
+      width: min(480px, calc(100% - 24px));
+      box-shadow: 0 20px 60px rgba(20,20,30,.20);
+      padding: 0;
+      overflow: hidden;
+      background: rgba(255,255,255,.96);
+    }
+    dialog::backdrop{
+      background: rgba(20, 20, 30, .35);
+      backdrop-filter: blur(2px);
+    }
+    .dlg{
+      padding: 14px;
+    }
+    .dlg h3{
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: .2px;
+    }
+    .field{
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .field label{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .field input{
+      border: 1px solid rgba(20,20,30,.10);
+      border-radius: 14px;
+      padding: 12px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: box-shadow .12s ease, border-color .12s ease;
+      background: white;
+    }
+    .field input:focus{
+      border-color: rgba(255,90,147,.35);
+      box-shadow: var(--focus);
+    }
+    .dlg-actions{
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 14px 14px;
+      border-top: 1px solid rgba(20,20,30,.06);
+      background: rgba(255,255,255,.8);
+    }
+
+    .note{
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo">PL</div>
+        <div style="min-width:0">
+          <h1>PinkList</h1>
+          <p>Offline-ready shopping lists</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="installBtn" type="button" style="display:none;">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4.01 4a1 1 0 0 1-1.4 0l-4.01-4a1 1 0 1 1 1.4-1.42l2.31 2.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/></svg>
+          Install
+        </button>
+        <button class="btn btn-primary" id="newListBtn" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/></svg>
+          New list
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app">
+    <section id="lists" class="lists" aria-label="Shopping lists"></section>
+
+    <section id="empty" class="empty" style="display:none;">
+      <h2>No lists yet</h2>
+      <p>Create your first list. Everything saves automatically and works offline once installed.</p>
+    </section>
+  </main>
+
+  <button class="fab" id="fabNewList" type="button" aria-label="Create new list">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" style="color:white;"><path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/></svg>
+  </button>
+
+  <!-- Dialog: create list -->
+  <dialog id="listDialog">
+    <div class="dlg">
+      <h3>Create a new list</h3>
+      <div class="field">
+        <label for="listTitleInput">List title</label>
+        <input id="listTitleInput" type="text" placeholder="e.g., Weekly groceries" autocomplete="off" />
+      </div>
+      <p class="note">Tip: You can rename a list anytime by tapping its title.</p>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn" id="cancelListDialog" type="button">Cancel</button>
+      <button class="btn btn-primary" id="createListConfirm" type="button">Create</button>
+    </div>
+  </dialog>
+
+  <!-- Dialog: edit item -->
+  <dialog id="editDialog">
+    <div class="dlg">
+      <h3>Edit item</h3>
+      <div class="field">
+        <label for="editInput">Item text</label>
+        <input id="editInput" type="text" autocomplete="off" />
+      </div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn" id="cancelEdit" type="button">Cancel</button>
+      <button class="btn btn-primary" id="saveEdit" type="button">Save</button>
+    </div>
+  </dialog>
+
+  <script>
+    /* ---------------------------
+       Storage + State
+    ----------------------------*/
+    const STORAGE_KEY = "pinklist:pwa:lists:v1";
+
+    const ACCENTS = [
+      { accent: "#ff5a93", tint: "rgba(255,90,147,.14)" },
+      { accent: "#ff3d7f", tint: "rgba(255,61,127,.14)" },
+      { accent: "#ff7ab0", tint: "rgba(255,122,176,.14)" },
+      { accent: "#ff5fb6", tint: "rgba(255,95,182,.14)" },
+      { accent: "#ff6b9b", tint: "rgba(255,107,155,.14)" },
+      { accent: "#ff4f8b", tint: "rgba(255,79,139,.14)" }
+    ];
+
+    function uid(){
+      return (crypto?.randomUUID?.() ?? ("id-" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return { lists: [] };
+        const parsed = JSON.parse(raw);
+        if(!parsed || !Array.isArray(parsed.lists)) return { lists: [] };
+        return parsed;
+      }catch{
+        return { lists: [] };
+      }
+    }
+
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    const state = load();
+
+    /* ---------------------------
+       DOM
+    ----------------------------*/
+    const $lists = document.getElementById("lists");
+    const $empty = document.getElementById("empty");
+
+    const $listDialog = document.getElementById("listDialog");
+    const $listTitleInput = document.getElementById("listTitleInput");
+
+    const $editDialog = document.getElementById("editDialog");
+    const $editInput = document.getElementById("editInput");
+
+    const $newListBtn = document.getElementById("newListBtn");
+    const $fabNewList = document.getElementById("fabNewList");
+
+    const $installBtn = document.getElementById("installBtn");
+    let deferredInstall = null;
+
+    // Edit context
+    let editCtx = null; // { listId, itemId }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function listAccent(listId){
+      // stable-ish mapping: hash-like reduction from string
+      let sum = 0;
+      for (let i = 0; i < listId.length; i++) sum = (sum + listId.charCodeAt(i) * (i + 1)) % 9973;
+      return ACCENTS[sum % ACCENTS.length];
+    }
+
+    function countDone(items){
+      let done = 0;
+      for(const it of items) if(it.done) done++;
+      return done;
+    }
+
+    function render(){
+      $lists.innerHTML = "";
+
+      const hasLists = state.lists.length > 0;
+      $empty.style.display = hasLists ? "none" : "block";
+
+      for(const list of state.lists){
+        const { accent, tint } = listAccent(list.id);
+        const done = countDone(list.items);
+        const total = list.items.length;
+
+        const card = document.createElement("article");
+        card.className = "card";
+        card.style.setProperty("--accent", accent);
+        card.style.setProperty("--tint", tint);
+        card.dataset.listId = list.id;
+
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-header">
+              <div class="title-wrap">
+                <input
+                  class="list-title"
+                  value="${escapeHtml(list.title)}"
+                  aria-label="List title"
+                  data-action="rename-list"
+                />
+                <div class="meta">
+                  <span class="pill" title="List accent">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span>List</span>
+                  </span>
+                  <span class="pill" title="Progress">${done}/${total} done</span>
+                </div>
+              </div>
+              <button class="icon-btn" type="button" data-action="delete-list" aria-label="Delete list">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <form class="addbar" data-action="add-item" autocomplete="off">
+              <input type="text" name="text" placeholder="Add an item…" aria-label="Add item" />
+              <button class="mini" type="submit" aria-label="Add">Add</button>
+            </form>
+
+            <ul class="items" aria-label="Items">
+              ${list.items.map(item => `
+                <li class="item ${item.done ? "done" : ""}" data-item-id="${escapeHtml(item.id)}">
+                  <label class="check" data-action="toggle-item" aria-label="Mark completed">
+                    <input type="checkbox" ${item.done ? "checked" : ""} />
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9.2 16.6 4.9 12.3a1 1 0 0 1 1.4-1.4l2.9 2.9 8.5-8.5a1 1 0 1 1 1.4 1.4l-9.2 9.2a1 1 0 0 1-1.4 0Z"/>
+                    </svg>
+                  </label>
+
+                  <div class="text" data-action="quick-edit" title="Double-click to edit">${escapeHtml(item.text)}</div>
+
+                  <div class="item-actions">
+                    <button class="mini-btn" type="button" data-action="edit-item" aria-label="Edit item">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 17.5V20a1 1 0 0 0 1 1h2.5a1 1 0 0 0 .7-.3l10.8-10.8a2 2 0 0 0 0-2.8l-2.1-2.1a2 2 0 0 0-2.8 0L3.3 15.8a1 1 0 0 0-.3.7Zm14.6-9.8L17.3 6.4a.5.5 0 0 0-.7 0l-1.2 1.2 2 2 1.2-1.2a.5.5 0 0 0 0-.7Z"/>
+                      </svg>
+                    </button>
+                    <button class="mini-btn" type="button" data-action="delete-item" aria-label="Delete item">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              `).join("")}
+            </ul>
+          </div>
+        `;
+
+        $lists.appendChild(card);
+
+        // After insertion, focus behavior: none.
+      }
+    }
