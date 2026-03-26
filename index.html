@@ -363,9 +363,7 @@
     .check input{ display: none; }
     .check svg{ width: 16px; height: 16px; fill: transparent; transition: fill .12s ease; }
 
-    .item.done{
-      opacity: .72;
-    }
+    .item.done{ opacity: .72; }
     .item.done .text{
       text-decoration: line-through;
       color: rgba(60,60,70,.7);
@@ -374,9 +372,7 @@
       background: rgba(255,90,147,.12);
       border-color: rgba(255,90,147,.35);
     }
-    .item.done .check svg{
-      fill: rgba(255,90,147,.95);
-    }
+    .item.done .check svg{ fill: rgba(255,90,147,.95); }
 
     .text{
       font-size: 14px;
@@ -463,9 +459,7 @@
       background: rgba(20, 20, 30, .35);
       backdrop-filter: blur(2px);
     }
-    .dlg{
-      padding: 14px;
-    }
+    .dlg{ padding: 14px; }
     .dlg h3{
       margin: 0 0 10px;
       font-size: 15px;
@@ -476,10 +470,7 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-    .field label{
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .field label{ font-size: 12px; color: var(--muted); }
     .field input{
       border: 1px solid rgba(20,20,30,.10);
       border-radius: 14px;
@@ -509,7 +500,6 @@
       line-height: 1.35;
     }
 
-    /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       *{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
@@ -651,7 +641,6 @@
     }
 
     function listAccent(listId){
-      // stable-ish mapping: hash-like reduction from string
       let sum = 0;
       for (let i = 0; i < listId.length; i++) sum = (sum + listId.charCodeAt(i) * (i + 1)) % 9973;
       return ACCENTS[sum % ACCENTS.length];
@@ -741,7 +730,327 @@
         `;
 
         $lists.appendChild(card);
-
-        // After insertion, focus behavior: none.
       }
     }
+
+    function findList(listId){
+      return state.lists.find(l => l.id === listId) || null;
+    }
+
+    function findItem(list, itemId){
+      return list.items.find(i => i.id === itemId) || null;
+    }
+
+    /* ---------------------------
+       List CRUD
+    ----------------------------*/
+    function openNewListDialog(){
+      // Fallback for browsers without <dialog> support
+      if(!$listDialog || typeof $listDialog.showModal !== "function"){
+        const title = prompt("New list title:", "New list");
+        if(title !== null) createList(title);
+        return;
+      }
+
+      $listTitleInput.value = "";
+      $listDialog.showModal();
+      setTimeout(() => $listTitleInput.focus(), 0);
+    }
+
+    function createList(title){
+      const t = (title || "").trim() || "New list";
+      const list = { id: uid(), title: t, items: [] };
+      state.lists.unshift(list);
+      save();
+      render();
+
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`.card[data-list-id="${CSS.escape(list.id)}"]`);
+        card?.querySelector('.addbar input')?.focus();
+      });
+    }
+
+    function deleteList(listId){
+      const idx = state.lists.findIndex(l => l.id === listId);
+      if(idx === -1) return;
+      state.lists.splice(idx, 1);
+      save();
+      render();
+    }
+
+    function renameList(listId, title){
+      const list = findList(listId);
+      if(!list) return;
+      const t = (title || "").trim() || "Untitled list";
+      list.title = t;
+      save();
+      render();
+    }
+
+    /* ---------------------------
+       Item CRUD
+    ----------------------------*/
+    function addItem(listId, text){
+      const list = findList(listId);
+      if(!list) return;
+      const t = (text || "").trim();
+      if(!t) return;
+
+      list.items.unshift({ id: uid(), text: t, done: false });
+      save();
+      render();
+
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`.card[data-list-id="${CSS.escape(listId)}"]`);
+        const input = card?.querySelector('.addbar input');
+        if(input){ input.focus(); input.value = ""; }
+      });
+    }
+
+    function toggleItem(listId, itemId){
+      const list = findList(listId);
+      if(!list) return;
+      const item = findItem(list, itemId);
+      if(!item) return;
+      item.done = !item.done;
+      save();
+      render();
+    }
+
+    function deleteItem(listId, itemId){
+      const list = findList(listId);
+      if(!list) return;
+      const idx = list.items.findIndex(i => i.id === itemId);
+      if(idx === -1) return;
+      list.items.splice(idx, 1);
+      save();
+      render();
+    }
+
+    function openEditItem(listId, itemId){
+      const list = findList(listId);
+      if(!list) return;
+      const item = findItem(list, itemId);
+      if(!item) return;
+
+      // Fallback for browsers without <dialog> support
+      if(!$editDialog || typeof $editDialog.showModal !== "function"){
+        const next = prompt("Edit item:", item.text);
+        if(next !== null){
+          const t = next.trim();
+          if(t){
+            item.text = t;
+            save();
+            render();
+          }
+        }
+        return;
+      }
+
+      editCtx = { listId, itemId };
+      $editInput.value = item.text;
+      $editDialog.showModal();
+      setTimeout(() => $editInput.focus(), 0);
+    }
+
+    function saveEditItem(){
+      if(!editCtx) return;
+      const { listId, itemId } = editCtx;
+      const list = findList(listId);
+      if(!list) return;
+      const item = findItem(list, itemId);
+      if(!item) return;
+
+      const t = ($editInput.value || "").trim();
+      if(!t) return;
+      item.text = t;
+
+      save();
+      $editDialog.close();
+      editCtx = null;
+      render();
+    }
+
+    /* ---------------------------
+       Events
+    ----------------------------*/
+    $newListBtn.addEventListener("click", openNewListDialog);
+    $fabNewList.addEventListener("click", openNewListDialog);
+
+    document.getElementById("cancelListDialog").addEventListener("click", () => $listDialog.close());
+    document.getElementById("createListConfirm").addEventListener("click", () => {
+      createList($listTitleInput.value);
+      $listDialog.close();
+    });
+
+    $listTitleInput.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){
+        e.preventDefault();
+        createList($listTitleInput.value);
+        $listDialog.close();
+      }
+    });
+
+    document.getElementById("cancelEdit").addEventListener("click", () => {
+      editCtx = null;
+      $editDialog.close();
+    });
+
+    document.getElementById("saveEdit").addEventListener("click", saveEditItem);
+
+    $editInput.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){
+        e.preventDefault();
+        saveEditItem();
+      }
+    });
+
+    $lists.addEventListener("submit", (e) => {
+      const form = e.target.closest('form[data-action="add-item"]');
+      if(!form) return;
+
+      e.preventDefault();
+      const card = e.target.closest(".card");
+      const listId = card?.dataset?.listId;
+      const input = form.querySelector('input[name="text"]');
+      addItem(listId, input?.value);
+    });
+
+    $lists.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-action]");
+      if(!btn) return;
+
+      const card = e.target.closest(".card");
+      const listId = card?.dataset?.listId;
+      if(!listId) return;
+
+      const action = btn.dataset.action;
+
+      if(action === "delete-list"){
+        const list = findList(listId);
+        const name = list?.title || "this list";
+        if(confirm(`Delete "${name}"? This cannot be undone.`)){
+          deleteList(listId);
+        }
+        return;
+      }
+
+      const itemEl = e.target.closest(".item");
+      const itemId = itemEl?.dataset?.itemId;
+
+      if(action === "toggle-item"){
+        if(itemId) toggleItem(listId, itemId);
+        return;
+      }
+
+      if(action === "delete-item"){
+        if(itemId) deleteItem(listId, itemId);
+        return;
+      }
+
+      if(action === "edit-item"){
+        if(itemId) openEditItem(listId, itemId);
+        return;
+      }
+    });
+
+    $lists.addEventListener("dblclick", (e) => {
+      const text = e.target.closest('[data-action="quick-edit"]');
+      if(!text) return;
+
+      const card = e.target.closest(".card");
+      const itemEl = e.target.closest(".item");
+      const listId = card?.dataset?.listId;
+      const itemId = itemEl?.dataset?.itemId;
+      if(listId && itemId) openEditItem(listId, itemId);
+    });
+
+    $lists.addEventListener("change", (e) => {
+      const titleInput = e.target.closest('input[data-action="rename-list"]');
+      if(!titleInput) return;
+      const card = e.target.closest(".card");
+      const listId = card?.dataset?.listId;
+      if(!listId) return;
+      renameList(listId, titleInput.value);
+    });
+
+    $lists.addEventListener("blur", (e) => {
+      const titleInput = e.target.closest('input[data-action="rename-list"]');
+      if(!titleInput) return;
+      const card = e.target.closest(".card");
+      const listId = card?.dataset?.listId;
+      if(!listId) return;
+      renameList(listId, titleInput.value);
+    }, true);
+
+    $lists.addEventListener("keydown", (e) => {
+      const titleInput = e.target.closest('input[data-action="rename-list"]');
+      if(titleInput && e.key === "Enter"){
+        e.preventDefault();
+        titleInput.blur();
+      }
+    });
+
+    /* ---------------------------
+       PWA: Install prompt
+    ----------------------------*/
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstall = e;
+      $installBtn.style.display = "inline-flex";
+    });
+
+    $installBtn.addEventListener("click", async () => {
+      if(!deferredInstall) return;
+      deferredInstall.prompt();
+      await deferredInstall.userChoice;
+      deferredInstall = null;
+      $installBtn.style.display = "none";
+    });
+
+    /* ---------------------------
+       PWA: Service worker
+    ----------------------------*/
+    async function registerSW(){
+      if(!("serviceWorker" in navigator)) return;
+      try{
+        await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+      }catch{
+        // ignore
+      }
+    }
+
+    /* ---------------------------
+       First run seed (optional)
+    ----------------------------*/
+    function ensureSeed(){
+      if(state.lists.length > 0) return;
+      state.lists = [
+        {
+          id: uid(),
+          title: "Groceries",
+          items: [
+            { id: uid(), text: "Milk", done: false },
+            { id: uid(), text: "Eggs", done: true },
+            { id: uid(), text: "Coffee", done: false }
+          ]
+        },
+        {
+          id: uid(),
+          title: "Pharmacy",
+          items: [
+            { id: uid(), text: "Band-aids", done: false },
+            { id: uid(), text: "Vitamins", done: false }
+          ]
+        }
+      ];
+      save();
+    }
+
+    // Boot
+    ensureSeed();
+    render();
+    registerSW();
+  </script>
+</body>
+</html>
