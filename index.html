@@ -14,12 +14,12 @@
     
     <title>Shopping List</title>
     
-    <link rel="manifest" href="/Shopping-List/manifest.json">
-    <link rel="stylesheet" href="/Shopping-List/styles.css">
-    <link rel="icon" type="image/png" href="/Shopping-List/icon-192.png">
-    <link rel="apple-touch-icon" href="/Shopping-List/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/Shopping-List/icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/Shopping-List/icon-512.png">
+    <link rel="manifest" href="/Shopping-List/manifest.json?v=1.2">
+    <link rel="stylesheet" href="/Shopping-List/styles.css?v=1.2">
+    <link rel="icon" type="image/png" href="/Shopping-List/icon-192.png?v=1.2">
+    <link rel="apple-touch-icon" href="/Shopping-List/icon-192.png?v=1.2">
+    <link rel="apple-touch-icon" sizes="192x192" href="/Shopping-List/icon-192.png?v=1.2">
+    <link rel="apple-touch-icon" sizes="512x512" href="/Shopping-List/icon-512.png?v=1.2">
 </head>
 <body>
     <!-- Main View: List of Shopping Lists -->
@@ -127,19 +127,89 @@
         </div>
     </div>
 
-    <script src="/Shopping-List/app.js"></script>
+    <!-- Update notification -->
+    <div id="updateNotification" class="update-notification">
+        <div class="update-content">
+            <span>🔄 New version available!</span>
+            <button id="updateBtn" class="btn-update">Update</button>
+        </div>
+    </div>
+
+    <script src="/Shopping-List/app.js?v=1.2"></script>
     <script>
+        const APP_VERSION = '1.2';
+        
+        // Check for updates
+        function checkForUpdates() {
+            const currentVersion = localStorage.getItem('appVersion');
+            if (currentVersion && currentVersion !== APP_VERSION) {
+                // Clear old cache
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    });
+                }
+                localStorage.setItem('appVersion', APP_VERSION);
+                console.log('App updated to version', APP_VERSION);
+            } else if (!currentVersion) {
+                localStorage.setItem('appVersion', APP_VERSION);
+            }
+        }
+
+        checkForUpdates();
+
         // Register Service Worker
+        let registration;
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/Shopping-List/sw.js', {
+                navigator.serviceWorker.register('/Shopping-List/sw.js?v=1.2', {
                     scope: '/Shopping-List/'
                 })
                 .then(reg => {
+                    registration = reg;
                     console.log('Service Worker registered successfully');
                     console.log('Scope:', reg.scope);
+                    
+                    // Check for updates every 60 seconds
+                    setInterval(() => {
+                        reg.update();
+                    }, 60000);
+                    
+                    // Listen for updates
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New service worker available
+                                showUpdateNotification();
+                            }
+                        });
+                    });
                 })
                 .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+
+        // Show update notification
+        function showUpdateNotification() {
+            const notification = document.getElementById('updateNotification');
+            notification.style.display = 'block';
+        }
+
+        // Handle update button
+        document.getElementById('updateBtn').addEventListener('click', () => {
+            if (registration && registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            window.location.reload();
+        });
+
+        // Listen for controller change
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
             });
         }
 
@@ -158,39 +228,3 @@
                 installPrompt.style.display = 'block';
             }
         });
-
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response: ${outcome}`);
-                deferredPrompt = null;
-            }
-            installPrompt.style.display = 'none';
-        });
-
-        dismissBtn.addEventListener('click', () => {
-            installPrompt.style.display = 'none';
-            localStorage.setItem('installPromptDismissed', 'true');
-        });
-
-        // Check if already dismissed
-        if (localStorage.getItem('installPromptDismissed')) {
-            installPrompt.style.display = 'none';
-        }
-
-        // Hide install prompt if already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            installPrompt.style.display = 'none';
-        }
-
-        // Prevent pull-to-refresh on mobile
-        document.body.addEventListener('touchmove', (e) => {
-            if (e.touches.length > 1) return;
-            if (window.scrollY === 0) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-    </script>
-</body>
-</html>
