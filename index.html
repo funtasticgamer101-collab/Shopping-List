@@ -1,1 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="A beautiful black and pink themed shopping list app">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ShopList">
+    
+    <title>Shopping List</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <!-- Main View: List of Shopping Lists -->
+    <div id="mainView" class="view active">
+        <header class="app-header">
+            <h1 class="app-title">
+                <span class="icon">🛍️</span>
+                Shopping Lists
+            </h1>
+        </header>
+
+        <div class="container">
+            <button id="createListBtn" class="btn-primary">
+                <span class="btn-icon">+</span>
+                Create New List
+            </button>
+
+            <div id="listsContainer" class="lists-grid">
+                <!-- List cards will be inserted here -->
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h2>No Lists Yet</h2>
+                <p>Create your first shopping list to get started!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail View: Individual List Items -->
+    <div id="detailView" class="view">
+        <header class="app-header detail-header">
+            <button id="backBtn" class="btn-back">
+                <span>←</span>
+            </button>
+            <h1 id="listTitle" class="app-title">List Name</h1>
+            <button id="deleteListBtn" class="btn-icon-only">
+                <span>🗑️</span>
+            </button>
+        </header>
+
+        <div class="container">
+            <div class="progress-bar-container">
+                <div class="progress-info">
+                    <span id="progressText">0 of 0 completed</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="add-item-form">
+                <input 
+                    type="text" 
+                    id="itemInput" 
+                    class="input-field" 
+                    placeholder="Add new item..."
+                    autocomplete="off"
+                >
+                <button id="addItemBtn" class="btn-add">
+                    <span>+</span>
+                </button>
+            </div>
+
+            <div id="itemsContainer" class="items-list">
+                <!-- Items will be inserted here -->
+            </div>
+
+            <div id="emptyItems" class="empty-state small">
+                <div class="empty-icon">🛒</div>
+                <p>No items yet. Add your first item above!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for creating new list -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2>Create New List</h2>
+            <input 
+                type="text" 
+                id="listNameInput" 
+                class="input-field" 
+                placeholder="Enter list name..."
+                autocomplete="off"
+            >
+            <div class="modal-actions">
+                <button id="cancelBtn" class="btn-secondary">Cancel</button>
+                <button id="confirmBtn" class="btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
 
