@@ -1,72 +1,42 @@
-const CACHE_NAME = "pinklist-cache-v1";
-const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./sw.js",
-  "./icons/icon-192.svg",
-  "./icons/icon-512.svg"
-];
+const CACHE_NAME = "pinklist-v2";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(APP_SHELL);
-    self.skipWaiting();
-  })());
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))));
-    self.clients.claim();
-  })());
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => {
+        if(k !== CACHE_NAME) return caches.delete(k);
+      }))
+    )
+  );
+  self.clients.claim();
 });
 
-/**
- * Strategy:
- * - Navigations: network-first, fallback to cached index for offline
- * - Static assets: cache-first
- */
+/* ---------------------------
+   MODERN CACHE STRATEGY
+----------------------------*/
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  const url = new URL(req.url);
 
-  // Only handle same-origin
-  if (url.origin !== location.origin) return;
+  if (req.method !== "GET") return;
 
-  // Navigations (SPA-ish)
-  if (req.mode === "navigate") {
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req);
-        const cache = await caches.open(CACHE_NAME);
-        cache.put("./index.html", fresh.clone());
-        return fresh;
-      } catch {
-        const cache = await caches.open(CACHE_NAME);
-        return (await cache.match("./index.html")) || new Response("Offline", { status: 503 });
-      }
-    })());
-    return;
-  }
+  event.respondWith(
+    caches.match(req).then((cached) => {
 
-  // Assets: cache-first
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(req);
-    if (cached) return cached;
+      const fetchPromise = fetch(req).then((networkRes) => {
+        if (networkRes && networkRes.status === 200) {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(req, clone);
+          });
+        }
+        return networkRes;
+      }).catch(() => cached);
 
-    try {
-      const fresh = await fetch(req);
-      // Cache only basic, successful responses
-      if (fresh && fresh.status === 200 && fresh.type === "basic") {
-        cache.put(req, fresh.clone());
-      }
-      return fresh;
-    } catch {
-      return cached || new Response("Offline", { status: 503 });
-    }
-  })());
+      return cached || fetchPromise;
+    })
+  );
 });
