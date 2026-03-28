@@ -2,1109 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- App-like behavior -->
   <meta name="theme-color" content="#ff5a93" />
-  <meta name="description" content="A modern PWA shopping list with multiple lists, offline support, and a clean pink theme." />
-
-  <!-- PWA “standalone / hide URL bar” hints -->
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="PinkList" />
-
-  <!-- Ensure relative paths resolve correctly even when hosted in a subfolder -->
-  <base href="./" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- Icons: explicit relative paths + SVG data-URI fallback -->
-  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
-  <link rel="icon"
-        href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%23ff5a93"/%3E%3Cstop offset="1" stop-color="%23ff76a7"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="64" height="64" rx="16" fill="url(%23g)"/%3E%3Cpath d="M18 20h28v6H18zm0 12h28v6H18zm0 12h20v6H18z" fill="rgba(255,255,255,.92)"/%3E%3C/svg%3E'
-        type="image/svg+xml" />
-
-  <title>PinkList — Shopping List PWA</title>
+  <title>PinkList</title>
 
   <style>
-    :root{
-      --bg: #ffffff;
-      --text: #1f1f25;
-      --muted: #6b6b76;
-      --border: rgba(20, 20, 30, .08);
-
-      --pink: #ff5a93;
-      --pink-2: #ff76a7;
-      --pink-soft: #fff1f6;
-
-      --radius: 18px;
-      --shadow: 0 10px 30px rgba(20, 20, 30, .08);
-      --shadow-soft: 0 8px 22px rgba(20, 20, 30, .06);
-      --focus: 0 0 0 4px rgba(255, 90, 147, .20);
-
-      --max: 980px;
-    }
-
-    *{ box-sizing: border-box; }
-    html, body{ height: 100%; }
-
-    body{
+    body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color: var(--text);
-      background:
-        radial-gradient(900px 400px at 10% 0%, rgba(255,90,147,.10), transparent 60%),
-        radial-gradient(900px 400px at 90% 10%, rgba(255,118,167,.09), transparent 60%),
-        var(--bg);
+      font-family: system-ui;
+      background: #fff;
     }
 
-    header{
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(255,255,255,.90), rgba(255,255,255,.70));
-      border-bottom: 1px solid rgba(20,20,30,.06);
-      padding-top: env(safe-area-inset-top);
+    .item {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      transition: transform .2s ease, opacity .2s ease;
     }
 
-    .header-inner{
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 14px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+    .item.removing {
+      opacity: 0;
+      transform: translateX(40px);
     }
 
-    .brand{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .logo{
-      width: 40px;
-      height: 40px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
-      box-shadow: var(--shadow-soft);
-      display: grid;
-      place-items: center;
-      color: white;
-      font-weight: 900;
-      letter-spacing: .4px;
-      user-select: none;
-      flex: 0 0 auto;
-    }
-
-    .brand h1{
-      margin: 0;
-      font-size: 16px;
-      line-height: 1.1;
-      letter-spacing: .2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .brand p{
-      margin: 2px 0 0;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .actions{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 0 0 auto;
-    }
-
-    .btn{
-      appearance: none;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.9);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 12px;
-      font-weight: 800;
-      font-size: 13px;
-      cursor: pointer;
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
-      box-shadow: 0 6px 18px rgba(20,20,30,.05);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      user-select: none;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .btn:active{ transform: translateY(0px) scale(.99); }
-    .btn:focus{ outline: none; box-shadow: var(--shadow-soft), var(--focus); }
-
-    .btn-primary{
-      border-color: rgba(255,90,147,.25);
-      background: linear-gradient(135deg, rgba(255,90,147,1), rgba(255,118,167,1));
-      color: white;
-      box-shadow: 0 10px 26px rgba(255,90,147,.22);
-    }
-    .btn-ghost{ background: rgba(255,255,255,.6); }
-
-    .icon{
-      width: 18px;
-      height: 18px;
-      display: block;
-      fill: currentColor;
-    }
-
-    main{
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 18px 14px 34px;
-    }
-
-    .lists{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 720px){
-      .lists{ grid-template-columns: 1fr 1fr; gap: 14px; }
-    }
-
-    /* Each list is a <details> dropdown */
-    details.card{
-      --accent: var(--pink);
-      --tint: rgba(255,90,147,.12);
-
-      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.86));
-      border: 1px solid rgba(20,20,30,.07);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-      transform: translateZ(0);
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-      animation: pop .18s ease both;
-    }
-    @keyframes pop{
-      from{ opacity: 0; transform: translateY(6px) scale(.99); }
-      to{ opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    details.card::before{
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(800px 300px at 20% 0%, var(--tint), transparent 60%),
-        radial-gradient(600px 250px at 90% 20%, rgba(255,255,255,.6), transparent 55%);
-      pointer-events: none;
-    }
-
-    details.card:hover{
-      box-shadow: 0 12px 34px rgba(20, 20, 30, .10);
-      border-color: rgba(255,90,147,.18);
-      transform: translateY(-1px);
-    }
-
-    summary{
-      list-style: none;
-      cursor: pointer;
-      user-select: none;
-      padding: 12px 14px;
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: start;
-    }
-    summary::-webkit-details-marker{ display:none; }
-
-    .sum-left{ min-width: 0; }
-
-    .title-row{
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .chev{
-      width: 18px;
-      height: 18px;
-      color: rgba(35,35,45,.65);
-      transition: transform .15s ease;
-      flex: 0 0 auto;
-    }
-    details[open] .chev{ transform: rotate(180deg); }
-
-    .list-title{
-      flex: 1;
-      min-width: 0;
-      border: 0;
-      outline: none;
-      background: transparent;
-      font-size: 15px;
-      font-weight: 900;
-      letter-spacing: .2px;
-      padding: 6px 8px;
-      margin: -6px -8px;
-      border-radius: 12px;
-    }
-    .list-title:focus{
-      background: rgba(255,255,255,.9);
-      box-shadow: var(--focus);
-    }
-
-    .meta{
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      padding-left: 2px;
-      flex-wrap: wrap;
-    }
-
-    .pill{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(20,20,30,.07);
-      background: rgba(255,255,255,.75);
-    }
-
-    .dot{
-      width: 9px;
-      height: 9px;
-      border-radius: 99px;
-      background: var(--accent);
-      box-shadow: 0 0 0 3px rgba(255,90,147,.15);
-    }
-
-    .sum-actions{
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .icon-btn{
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      border: 1px solid rgba(20,20,30,.08);
-      background: rgba(255,255,255,.75);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-    }
-    .icon-btn:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 10px 22px rgba(20,20,30,.08);
-      border-color: rgba(255,90,147,.18);
-    }
-    .icon-btn:active{ transform: translateY(0px) scale(.99); }
-    .icon-btn:focus{ outline:none; box-shadow: var(--shadow-soft), var(--focus); }
-
-    .divider{
-      height: 1px;
-      background: rgba(20,20,30,.06);
-      margin: 0 14px 12px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .card-body{
-      position: relative;
-      z-index: 1;
-      padding: 0 14px 14px;
-    }
-
-    .addbar{
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    button {
       padding: 10px;
-      background: rgba(255,255,255,.72);
-      border: 1px solid rgba(20,20,30,.08);
-      border-radius: 16px;
-      box-shadow: 0 10px 22px rgba(20,20,30,.05);
-      margin-bottom: 10px;
-    }
-
-    .addbar input{
-      flex: 1;
-      border: 0;
-      outline: none;
-      background: transparent;
-      padding: 10px 10px;
-      font-size: 14px;
-      border-radius: 12px;
-    }
-
-    .addbar .mini{
-      border: 0;
-      cursor: pointer;
-      border-radius: 14px;
-      padding: 10px 12px;
-      background: var(--accent);
-      color: white;
-      font-weight: 900;
-      transition: transform .12s ease, filter .12s ease;
-    }
-    .addbar .mini:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-    .addbar .mini:active{ transform: translateY(0px) scale(.99); }
-
-    .items{
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 8px;
-    }
-
-    .item{
-      display: grid;
-      grid-template-columns: 34px 1fr auto;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 10px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.72);
-      border: 1px solid rgba(20,20,30,.07);
-      transition: transform .12s ease, opacity .12s ease, background .12s ease;
-    }
-    .item:hover{
-      transform: translateY(-1px);
-      background: rgba(255,255,255,.86);
-    }
-
-    .check{
-      width: 26px;
-      height: 26px;
-      border-radius: 10px;
-      border: 1px solid rgba(20,20,30,.12);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      background: rgba(255,255,255,.85);
-      transition: background .12s ease, border-color .12s ease;
-    }
-    .check input{ display:none; }
-    .check svg{ width:16px; height:16px; fill: transparent; transition: fill .12s ease; }
-
-    .item.done{ opacity: .72; }
-    .item.done .text{
-      text-decoration: line-through;
-      color: rgba(60,60,70,.7);
-    }
-    .item.done .check{
-      background: rgba(255,90,147,.12);
-      border-color: rgba(255,90,147,.35);
-    }
-    .item.done .check svg{ fill: rgba(255,90,147,.95); }
-
-    .text{
-      font-size: 14px;
-      line-height: 1.2;
-      padding: 6px 8px;
-      border-radius: 12px;
-      user-select: none;
-      word-break: break-word;
-    }
-
-    .item-actions{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .mini-btn{
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      border: 1px solid rgba(20,20,30,.08);
-      background: rgba(255,255,255,.78);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-    }
-    .mini-btn:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 10px 22px rgba(20,20,30,.07);
-      border-color: rgba(255,90,147,.18);
-    }
-    .mini-btn:active{ transform: translateY(0px) scale(.99); }
-
-    .empty{
-      border: 1px dashed rgba(255,90,147,.35);
-      background: rgba(255, 241, 246, .65);
-      border-radius: var(--radius);
-      padding: 16px;
-      color: rgba(60,60,70,.85);
-      box-shadow: 0 10px 22px rgba(20,20,30,.05);
-      margin-top: 14px;
-    }
-    .empty h2{ margin: 0 0 6px; font-size: 15px; }
-    .empty p{ margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
-
-    /* Dialog */
-    dialog{
-      border: 1px solid rgba(20,20,30,.10);
-      border-radius: 18px;
-      width: min(480px, calc(100% - 24px));
-      box-shadow: 0 20px 60px rgba(20,20,30,.20);
-      padding: 0;
-      overflow: hidden;
-      background: rgba(255,255,255,.96);
-    }
-    dialog::backdrop{
-      background: rgba(20, 20, 30, .35);
-      backdrop-filter: blur(2px);
-    }
-    .dlg{ padding: 14px; }
-    .dlg h3{ margin: 0 0 10px; font-size: 15px; letter-spacing: .2px; }
-    .field{ display: grid; gap: 8px; margin-bottom: 12px; }
-    .field label{ font-size: 12px; color: var(--muted); }
-    .field input{
-      border: 1px solid rgba(20,20,30,.10);
-      border-radius: 14px;
-      padding: 12px 12px;
-      font-size: 14px;
-      outline: none;
-      transition: box-shadow .12s ease, border-color .12s ease;
-      background: white;
-    }
-    .field input:focus{
-      border-color: rgba(255,90,147,.35);
-      box-shadow: var(--focus);
-    }
-    .dlg-actions{
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      padding: 12px 14px 14px;
-      border-top: 1px solid rgba(20,20,30,.06);
-      background: rgba(255,255,255,.8);
-    }
-    .note{ margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.35; }
-
-    @media (prefers-reduced-motion: reduce){
-      *{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      margin: 5px;
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <div class="header-inner">
-      <div class="brand">
-        <div class="logo">PL</div>
-        <div style="min-width:0">
-          <h1>PinkList</h1>
-          <p>Offline-ready shopping lists</p>
+
+<button onclick="createList()">New List</button>
+<div id="lists"></div>
+
+<script>
+/* ---------------------------
+   HAPTICS
+----------------------------*/
+function haptic(type = "light"){
+  if (!("vibrate" in navigator)) return;
+  if(type === "light") navigator.vibrate(10);
+  if(type === "medium") navigator.vibrate(20);
+}
+
+/* ---------------------------
+   STORAGE
+----------------------------*/
+const STORAGE_KEY = "pinklist:pwa:v2";
+
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { lists: [] };
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* ---------------------------
+   UI RENDER
+----------------------------*/
+function render(){
+  const root = document.getElementById("lists");
+  root.innerHTML = "";
+
+  state.lists.forEach(list => {
+    const div = document.createElement("div");
+
+    div.innerHTML = `
+      <h3>${list.title}</h3>
+      <input placeholder="Add item..." onkeydown="handleAdd(event,'${list.id}')">
+      ${list.items.map(item => `
+        <div class="item" data-id="${item.id}">
+          ${item.text}
+          <button onclick="deleteItem('${list.id}','${item.id}')">X</button>
         </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn-ghost" id="installBtn" type="button" style="display:none;">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4.01 4a1 1 0 0 1-1.4 0l-4.01-4a1 1 0 1 1 1.4-1.42l2.31 2.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/>
-          </svg>
-          Install
-        </button>
-
-        <!-- One create list button -->
-        <button class="btn btn-primary" id="createListBtn" type="button">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/>
-          </svg>
-          Create list
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <section id="lists" class="lists" aria-label="Shopping lists"></section>
-
-    <section id="empty" class="empty" style="display:none;">
-      <h2>No lists yet</h2>
-      <p>Tap “Create list”. Everything saves automatically and works offline once installed.</p>
-    </section>
-  </main>
-
-  <!-- Dialog: create list -->
-  <dialog id="listDialog">
-    <div class="dlg">
-      <h3>Create a new list</h3>
-      <div class="field">
-        <label for="listTitleInput">List name</label>
-        <input id="listTitleInput" type="text" placeholder="e.g., Sunday shopping" autocomplete="off" />
-      </div>
-      <p class="note">Tip: You can rename a list anytime by tapping its name.</p>
-    </div>
-    <div class="dlg-actions">
-      <button class="btn" id="cancelListDialog" type="button">Cancel</button>
-      <button class="btn btn-primary" id="createListConfirm" type="button">Create</button>
-    </div>
-  </dialog>
-
-  <!-- Dialog: edit item -->
-  <dialog id="editDialog">
-    <div class="dlg">
-      <h3>Edit item</h3>
-      <div class="field">
-        <label for="editInput">Item text</label>
-        <input id="editInput" type="text" autocomplete="off" />
-      </div>
-    </div>
-    <div class="dlg-actions">
-      <button class="btn" id="cancelEdit" type="button">Cancel</button>
-      <button class="btn btn-primary" id="saveEdit" type="button">Save</button>
-    </div>
-  </dialog>
-
-  <script>
-    /* ---------------------------
-       “Hidden URL embedded” (standalone feel)
-       - If installed, display-mode: standalone will remove URL bar.
-       - This extra step keeps the URL clean (no accidental query strings).
-    ----------------------------*/
-    (function normalizeUrl(){
-      try{
-        const url = new URL(location.href);
-        if(url.search || url.hash){
-          history.replaceState(null, "", url.pathname);
-        }
-      }catch{}
-    })();
-
-    /* ---------------------------
-       Storage + State
-    ----------------------------*/
-    const STORAGE_KEY = "pinklist:pwa:lists:v2";
-
-    const ACCENTS = [
-      { accent: "#ff5a93", tint: "rgba(255,90,147,.14)" },
-      { accent: "#ff3d7f", tint: "rgba(255,61,127,.14)" },
-      { accent: "#ff7ab0", tint: "rgba(255,122,176,.14)" },
-      { accent: "#ff5fb6", tint: "rgba(255,95,182,.14)" },
-      { accent: "#ff6b9b", tint: "rgba(255,107,155,.14)" },
-      { accent: "#ff4f8b", tint: "rgba(255,79,139,.14)" }
-    ];
-
-    function uid(){
-      return (crypto?.randomUUID?.() ?? ("id-" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
-    }
-
-    function load(){
-      try{
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if(!raw) return { lists: [] };
-        const parsed = JSON.parse(raw);
-        if(!parsed || !Array.isArray(parsed.lists)) return { lists: [] };
-        return parsed;
-      }catch{
-        return { lists: [] };
-      }
-    }
-
-    function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    const state = load();
-
-    /* ---------------------------
-       DOM
-    ----------------------------*/
-    const $lists = document.getElementById("lists");
-    const $empty = document.getElementById("empty");
-
-    const $listDialog = document.getElementById("listDialog");
-    const $listTitleInput = document.getElementById("listTitleInput");
-
-    const $editDialog = document.getElementById("editDialog");
-    const $editInput = document.getElementById("editInput");
-
-    const $createListBtn = document.getElementById("createListBtn");
-
-    const $installBtn = document.getElementById("installBtn");
-    let deferredInstall = null;
-
-    // Edit context
-    let editCtx = null; // { listId, itemId }
-
-    function escapeHtml(s){
-      return String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function listAccent(listId){
-      let sum = 0;
-      for (let i = 0; i < listId.length; i++) sum = (sum + listId.charCodeAt(i) * (i + 1)) % 9973;
-      return ACCENTS[sum % ACCENTS.length];
-    }
-
-    function countDone(items){
-      let done = 0;
-      for(const it of items) if(it.done) done++;
-      return done;
-    }
-
-    function findList(listId){
-      return state.lists.find(l => l.id === listId) || null;
-    }
-
-    function findItem(list, itemId){
-      return list.items.find(i => i.id === itemId) || null;
-    }
-
-    function render(){
-      $lists.innerHTML = "";
-
-      const hasLists = state.lists.length > 0;
-      $empty.style.display = hasLists ? "none" : "block";
-
-      for(const list of state.lists){
-        const { accent, tint } = listAccent(list.id);
-        const done = countDone(list.items);
-        const total = list.items.length;
-
-        const details = document.createElement("details");
-        details.className = "card";
-        details.dataset.listId = list.id;
-        details.style.setProperty("--accent", accent);
-        details.style.setProperty("--tint", tint);
-
-        // Keep first list open by default for nicer UX
-        if(state.lists[0]?.id === list.id && total === 0){
-          details.open = true;
-        }
-
-        details.innerHTML = `
-          <summary>
-            <div class="sum-left">
-              <div class="title-row">
-                <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M7 10a1 1 0 0 1 1.7-.7l3.3 3.3 3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4A1 1 0 0 1 7 10Z"/>
-                </svg>
-
-                <input
-                  class="list-title"
-                  value="${escapeHtml(list.title)}"
-                  aria-label="List name"
-                  data-action="rename-list"
-                />
-              </div>
-
-              <div class="meta">
-                <span class="pill" title="List color">
-                  <span class="dot" aria-hidden="true"></span>
-                  <span>List</span>
-                </span>
-                <span class="pill" title="Progress">${done}/${total} done</span>
-              </div>
-            </div>
-
-            <div class="sum-actions">
-              <button class="icon-btn" type="button" data-action="delete-list" aria-label="Delete list" title="Delete list">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
-                </svg>
-              </button>
-            </div>
-          </summary>
-
-          <div class="divider"></div>
-
-          <div class="card-body">
-            <form class="addbar" data-action="add-item" autocomplete="off">
-              <input type="text" name="text" placeholder="Add an item…" aria-label="Add item" />
-              <button class="mini" type="submit">Add</button>
-            </form>
-
-            <ul class="items" aria-label="Items">
-              ${list.items.map(item => `
-                <li class="item ${item.done ? "done" : ""}" data-item-id="${escapeHtml(item.id)}">
-                  <label class="check" data-action="toggle-item" aria-label="Mark completed">
-                    <input type="checkbox" ${item.done ? "checked" : ""} />
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9.2 16.6 4.9 12.3a1 1 0 0 1 1.4-1.4l2.9 2.9 8.5-8.5a1 1 0 1 1 1.4 1.4l-9.2 9.2a1 1 0 0 1-1.4 0Z"/>
-                    </svg>
-                  </label>
-
-                  <div class="text" data-action="quick-edit" title="Double-click to edit">${escapeHtml(item.text)}</div>
-
-                  <div class="item-actions">
-                    <button class="mini-btn" type="button" data-action="edit-item" aria-label="Edit item" title="Edit">
-                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 17.5V20a1 1 0 0 0 1 1h2.5a1 1 0 0 0 .7-.3l10.8-10.8a2 2 0 0 0 0-2.8l-2.1-2.1a2 2 0 0 0-2.8 0L3.3 15.8a1 1 0 0 0-.3.7Zm14.6-9.8L17.3 6.4a.5.5 0 0 0-.7 0l-1.2 1.2 2 2 1.2-1.2a.5.5 0 0 0 0-.7Z"/>
-                      </svg>
-                    </button>
-                    <button class="mini-btn" type="button" data-action="delete-item" aria-label="Delete item" title="Delete">
-                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M9 3a1 1 0 0 0-1 1v1H5a1 1 0 1 0 0 2h1v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7h1a1 1 0 1 0 0-2h-3V4a1 1 0 0 0-1-1H9Zm1 2h4v0H10v0Zm-2 4a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Zm8 0a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0v-8a1 1 0 0 1 1-1Z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </li>
-              `).join("")}
-            </ul>
-          </div>
-        `;
-
-        $lists.appendChild(details);
-      }
-    }
-
-    /* ---------------------------
-       List CRUD
-    ----------------------------*/
-    function openNewListDialog(){
-      // Fallback for browsers without <dialog> support
-      if(!$listDialog || typeof $listDialog.showModal !== "function"){
-        const title = prompt("New list name:", "Sunday shopping");
-        if(title !== null) createList(title);
-        return;
-      }
-
-      $listTitleInput.value = "";
-      $listDialog.showModal();
-      setTimeout(() => $listTitleInput.focus(), 0);
-    }
-
-    function createList(title){
-      const t = (title || "").trim() || "New list";
-      const list = { id: uid(), title: t, items: [] };
-      state.lists.unshift(list);
-      save();
-      render();
-
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(list.id)}"]`);
-        if(card) card.open = true;
-        card?.querySelector('.addbar input')?.focus();
-      });
-    }
-
-    function deleteList(listId){
-      const idx = state.lists.findIndex(l => l.id === listId);
-      if(idx === -1) return;
-      state.lists.splice(idx, 1);
-      save();
-      render();
-    }
-
-    function renameList(listId, title){
-      const list = findList(listId);
-      if(!list) return;
-      const t = (title || "").trim() || "Untitled list";
-      list.title = t;
-      save();
-      // Render keeps things consistent (and updates progress pill if needed)
-      render();
-    }
-
-    /* ---------------------------
-       Item CRUD
-    ----------------------------*/
-    function addItem(listId, text){
-      const list = findList(listId);
-      if(!list) return;
-      const t = (text || "").trim();
-      if(!t) return;
-
-      list.items.unshift({ id: uid(), text: t, done: false });
-      save();
-      render();
-
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
-        if(card) card.open = true;
-        const input = card?.querySelector('.addbar input');
-        if(input){ input.focus(); input.value = ""; }
-      });
-    }
-
-    function toggleItem(listId, itemId){
-      const list = findList(listId);
-      if(!list) return;
-      const item = findItem(list, itemId);
-      if(!item) return;
-      item.done = !item.done;
-      save();
-      render();
-
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
-        if(card) card.open = true;
-      });
-    }
-
-    function deleteItem(listId, itemId){
-      const list = findList(listId);
-      if(!list) return;
-      const idx = list.items.findIndex(i => i.id === itemId);
-      if(idx === -1) return;
-      list.items.splice(idx, 1);
-      save();
-      render();
-
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
-        if(card) card.open = true;
-      });
-    }
-
-    function openEditItem(listId, itemId){
-      const list = findList(listId);
-      if(!list) return;
-      const item = findItem(list, itemId);
-      if(!item) return;
-
-      // Fallback for browsers without <dialog> support
-      if(!$editDialog || typeof $editDialog.showModal !== "function"){
-        const next = prompt("Edit item:", item.text);
-        if(next !== null){
-          const t = next.trim();
-          if(t){
-            item.text = t;
-            save();
-            render();
-          }
-        }
-        return;
-      }
-
-      editCtx = { listId, itemId };
-      $editInput.value = item.text;
-      $editDialog.showModal();
-      setTimeout(() => $editInput.focus(), 0);
-    }
-
-    function saveEditItem(){
-      if(!editCtx) return;
-      const { listId, itemId } = editCtx;
-      const list = findList(listId);
-      if(!list) return;
-      const item = findItem(list, itemId);
-      if(!item) return;
-
-      const t = ($editInput.value || "").trim();
-      if(!t) return;
-
-      item.text = t;
-      save();
-
-      $editDialog.close();
-      editCtx = null;
-
-      render();
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`details.card[data-list-id="${CSS.escape(listId)}"]`);
-        if(card) card.open = true;
-      });
-    }
-
-    /* ---------------------------
-       Events
-    ----------------------------*/
-    $createListBtn.addEventListener("click", openNewListDialog);
-
-    document.getElementById("cancelListDialog").addEventListener("click", () => $listDialog.close());
-    document.getElementById("createListConfirm").addEventListener("click", () => {
-      createList($listTitleInput.value);
-      $listDialog.close();
-    });
-
-    $listTitleInput.addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        e.preventDefault();
-        createList($listTitleInput.value);
-        $listDialog.close();
-      }
-    });
-
-    document.getElementById("cancelEdit").addEventListener("click", () => {
-      editCtx = null;
-      $editDialog.close();
-    });
-
-    document.getElementById("saveEdit").addEventListener("click", saveEditItem);
-
-    $editInput.addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        e.preventDefault();
-        saveEditItem();
-      }
-    });
-
-    // Delegation: add item
-    $lists.addEventListener("submit", (e) => {
-      const form = e.target.closest('form[data-action="add-item"]');
-      if(!form) return;
-
-      e.preventDefault();
-      const card = e.target.closest('details.card');
-      const listId = card?.dataset?.listId;
-      const input = form.querySelector('input[name="text"]');
-      addItem(listId, input?.value);
-    });
-
-    // Delegation: click actions
-    $lists.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-action]");
-      if(!btn) return;
-
-      const card = e.target.closest('details.card');
-      const listId = card?.dataset?.listId;
-      if(!listId) return;
-
-      const action = btn.dataset.action;
-
-      // If clicking a button in <summary>, prevent toggle
-      const inSummary = !!e.target.closest("summary");
-      if(inSummary){
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if(action === "delete-list"){
-        const list = findList(listId);
-        const name = list?.title || "this list";
-        if(confirm(`Delete "${name}"? This cannot be undone.`)){
-          deleteList(listId);
-        }
-        return;
-      }
-
-      const itemEl = e.target.closest(".item");
-      const itemId = itemEl?.dataset?.itemId;
-
-      if(action === "toggle-item"){
-        if(itemId) toggleItem(listId, itemId);
-        return;
-      }
-
-      if(action === "delete-item"){
-        if(itemId) deleteItem(listId, itemId);
-        return;
-      }
-
-      if(action === "edit-item"){
-        if(itemId) openEditItem(listId, itemId);
-        return;
-      }
-    });
-
-    // Double click on text to edit
-    $lists.addEventListener("dblclick", (e) => {
-      const text = e.target.closest('[data-action="quick-edit"]');
-      if(!text) return;
-
-      const card = e.target.closest("details.card");
-      const itemEl = e.target.closest(".item");
-      const listId = card?.dataset?.listId;
-      const itemId = itemEl?.dataset?.itemId;
-      if(listId && itemId) openEditItem(listId, itemId);
-    });
-
-    // Rename list
-    $lists.addEventListener("change", (e) => {
-      const titleInput = e.target.closest('input[data-action="rename-list"]');
-      if(!titleInput) return;
-      const card = e.target.closest("details.card");
-      const listId = card?.dataset?.listId;
-      if(!listId) return;
-      renameList(listId, titleInput.value);
-    });
-
-    $lists.addEventListener("blur", (e) => {
-      const titleInput = e.target.closest('input[data-action="rename-list"]');
-      if(!titleInput) return;
-      const card = e.target.closest("details.card");
-      const listId = card?.dataset?.listId;
-      if(!listId) return;
-      renameList(listId, titleInput.value);
-    }, true);
-
-    $lists.addEventListener("keydown", (e) => {
-      const titleInput = e.target.closest('input[data-action="rename-list"]');
-      if(titleInput && e.key === "Enter"){
-        e.preventDefault();
-        titleInput.blur();
-      }
-    });
-
-    /* ---------------------------
-       PWA: Install prompt
-    ----------------------------*/
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      deferredInstall = e;
-      $installBtn.style.display = "inline-flex";
-    });
-
-    $installBtn.addEventListener("click", async () => {
-      if(!deferredInstall) return;
-      deferredInstall.prompt();
-      await deferredInstall.userChoice;
-      deferredInstall = null;
-      $installBtn.style.display = "none";
-    });
-
-    /* ---------------------------
-       PWA: Service worker
-    ----------------------------*/
-    async function registerSW(){
-      if(!("serviceWorker" in navigator)) return;
-      try{
-        await navigator.serviceWorker.register("sw.js", { scope: "./" });
-      }catch{
-        // ignore
-      }
-    }
-
-    /* ---------------------------
-       Seed data (only if empty)
-    ----------------------------*/
-    function ensureSeed(){
-      if(state.lists.length > 0) return;
-      state.lists = [
-        {
-          id: uid(),
-          title: "Sunday shopping",
-          items: [
-            { id: uid(), text: "Milk", done: false },
-            { id: uid(), text: "Eggs", done: true },
-            { id: uid(), text: "Coffee", done: false }
-          ]
-        }
-      ];
-      save();
-    }
-
-    // Boot
-    ensureSeed();
+      `).join("")}
+    `;
+
+    root.appendChild(div);
+  });
+}
+
+/* ---------------------------
+   CRUD
+----------------------------*/
+function createList(){
+  haptic();
+  state.lists.push({
+    id: crypto.randomUUID(),
+    title: "New List",
+    items: []
+  });
+  save();
+  render();
+}
+
+function handleAdd(e, listId){
+  if(e.key !== "Enter") return;
+
+  haptic();
+
+  const text = e.target.value.trim();
+  if(!text) return;
+
+  const list = state.lists.find(l => l.id === listId);
+  list.items.push({
+    id: crypto.randomUUID(),
+    text
+  });
+
+  e.target.value = "";
+  save();
+  render();
+}
+
+function deleteItem(listId, itemId){
+  haptic("medium");
+
+  const el = document.querySelector(`[data-id="${itemId}"]`);
+  if(el){
+    el.classList.add("removing");
+    setTimeout(() => actuallyDelete(), 180);
+  } else {
+    actuallyDelete();
+  }
+
+  function actuallyDelete(){
+    const list = state.lists.find(l => l.id === listId);
+    list.items = list.items.filter(i => i.id !== itemId);
+    save();
     render();
-    registerSW();
-  </script>
+  }
+}
+
+/* ---------------------------
+   SWIPE DELETE
+----------------------------*/
+let touchStartX = 0;
+
+document.addEventListener("touchstart", (e) => {
+  const item = e.target.closest(".item");
+  if(!item) return;
+  touchStartX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend", (e) => {
+  const item = e.target.closest(".item");
+  if(!item) return;
+
+  const diff = touchStartX - e.changedTouches[0].clientX;
+
+  if(diff > 80){
+    const id = item.dataset.id;
+
+    state.lists.forEach(list => {
+      if(list.items.find(i => i.id === id)){
+        deleteItem(list.id, id);
+      }
+    });
+  }
+});
+
+/* ---------------------------
+   SERVICE WORKER
+----------------------------*/
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js");
+}
+
+/* ---------------------------
+   INIT
+----------------------------*/
+render();
+</script>
+
 </body>
 </html>
