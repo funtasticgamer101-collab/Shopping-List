@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#000000">
     <meta name="description" content="A beautiful black and pink themed shopping list app">
+    
+    <!-- iOS Specific Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ShopList">
+    <meta name="mobile-web-app-capable" content="yes">
     
     <title>Shopping List</title>
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/png" href="icon-192.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="/Shopping-List/manifest.json">
+    <link rel="stylesheet" href="/Shopping-List/styles.css">
+    <link rel="icon" type="image/png" href="/Shopping-List/icon-192.png">
+    <link rel="apple-touch-icon" href="/Shopping-List/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/Shopping-List/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/Shopping-List/icon-512.png">
 </head>
 <body>
     <!-- Main View: List of Shopping Lists -->
@@ -109,17 +114,83 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Install Prompt (for browsers that support it) -->
+    <div id="installPrompt" class="install-prompt">
+        <div class="install-content">
+            <div class="install-icon">📱</div>
+            <div class="install-text">
+                <h3>Install App</h3>
+                <p>Install this app on your home screen for a better experience!</p>
+            </div>
+            <button id="installBtn" class="btn-install">Install</button>
+            <button id="dismissBtn" class="btn-dismiss">×</button>
+        </div>
+    </div>
+
+    <script src="/Shopping-List/app.js"></script>
     <script>
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker registration failed:', err));
+                navigator.serviceWorker.register('/Shopping-List/sw.js', {
+                    scope: '/Shopping-List/'
+                })
+                .then(reg => {
+                    console.log('Service Worker registered successfully');
+                    console.log('Scope:', reg.scope);
+                })
+                .catch(err => console.log('Service Worker registration failed:', err));
             });
         }
+
+        // Install prompt handling
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissBtn = document.getElementById('dismissBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install prompt if not already installed
+            if (!window.matchMedia('(display-mode: standalone)').matches) {
+                installPrompt.style.display = 'block';
+            }
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                deferredPrompt = null;
+            }
+            installPrompt.style.display = 'none';
+        });
+
+        dismissBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            localStorage.setItem('installPromptDismissed', 'true');
+        });
+
+        // Check if already dismissed
+        if (localStorage.getItem('installPromptDismissed')) {
+            installPrompt.style.display = 'none';
+        }
+
+        // Hide install prompt if already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            installPrompt.style.display = 'none';
+        }
+
+        // Prevent pull-to-refresh on mobile
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) return;
+            if (window.scrollY === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>
-
