@@ -1,28 +1,38 @@
-const CACHE_NAME = 'shopping-list-v1';
+const CACHE_NAME = 'shopping-list-v1.1';
+const BASE_PATH = '/Shopping-List';
+
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/styles.css`,
+  `${BASE_PATH}/app.js`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/icon-192.png`,
+  `${BASE_PATH}/icon-512.png`
 ];
 
 // Install event - cache all assets
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('All files cached successfully');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('Cache failed:', error);
+      })
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -33,7 +43,10 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      console.log('Service Worker activated');
+      return self.clients.claim();
+    })
   );
 });
 
@@ -44,8 +57,11 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         // Cache hit - return response
         if (response) {
+          console.log('Serving from cache:', event.request.url);
           return response;
         }
+
+        console.log('Fetching from network:', event.request.url);
 
         // Clone the request
         const fetchRequest = event.request.clone();
@@ -65,9 +81,12 @@ self.addEventListener('fetch', (event) => {
             });
 
           return response;
-        }).catch(() => {
-          // Return a custom offline page if available
-          return caches.match('/index.html');
+        }).catch((error) => {
+          console.error('Fetch failed:', error);
+          // Return the index page for navigation requests
+          if (event.request.mode === 'navigate') {
+            return caches.match(`${BASE_PATH}/index.html`);
+          }
         });
       })
   );
