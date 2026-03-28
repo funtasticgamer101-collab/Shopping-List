@@ -14,12 +14,11 @@
     
     <title>Shopping List</title>
     
-    <link rel="manifest" href="/Shopping-List/manifest.json?v=1.2">
-    <link rel="stylesheet" href="/Shopping-List/styles.css?v=1.2">
-    <link rel="icon" type="image/png" href="/Shopping-List/icon-192.png?v=1.2">
-    <link rel="apple-touch-icon" href="/Shopping-List/icon-192.png?v=1.2">
-    <link rel="apple-touch-icon" sizes="192x192" href="/Shopping-List/icon-192.png?v=1.2">
-    <link rel="apple-touch-icon" sizes="512x512" href="/Shopping-List/icon-512.png?v=1.2">
+    <!-- Direct paths without query strings for now -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <!-- Main View: List of Shopping Lists -->
@@ -114,7 +113,7 @@
         </div>
     </div>
 
-    <!-- Install Prompt (for browsers that support it) -->
+    <!-- Install Prompt -->
     <div id="installPrompt" class="install-prompt">
         <div class="install-content">
             <div class="install-icon">📱</div>
@@ -135,81 +134,71 @@
         </div>
     </div>
 
-    <script src="/Shopping-List/app.js?v=1.2"></script>
+    <script src="app.js"></script>
     <script>
-        const APP_VERSION = '1.2';
-        
-        // Check for updates
-        function checkForUpdates() {
-            const currentVersion = localStorage.getItem('appVersion');
-            if (currentVersion && currentVersion !== APP_VERSION) {
-                // Clear old cache
-                if ('caches' in window) {
-                    caches.keys().then(names => {
-                        names.forEach(name => {
-                            caches.delete(name);
-                        });
-                    });
-                }
-                localStorage.setItem('appVersion', APP_VERSION);
-                console.log('App updated to version', APP_VERSION);
-            } else if (!currentVersion) {
-                localStorage.setItem('appVersion', APP_VERSION);
-            }
+        // Force clear cache and reload
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    if (name.includes('shopping-list') && !name.includes('v1.2')) {
+                        caches.delete(name);
+                        console.log('Deleted old cache:', name);
+                    }
+                });
+            });
         }
-
-        checkForUpdates();
 
         // Register Service Worker
         let registration;
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/Shopping-List/sw.js?v=1.2', {
+            // Unregister old service workers first
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => {
+                    reg.unregister();
+                    console.log('Unregistered old service worker');
+                });
+            }).then(() => {
+                // Register new service worker
+                return navigator.serviceWorker.register('sw.js', {
                     scope: '/Shopping-List/'
-                })
-                .then(reg => {
-                    registration = reg;
-                    console.log('Service Worker registered successfully');
-                    console.log('Scope:', reg.scope);
-                    
-                    // Check for updates every 60 seconds
-                    setInterval(() => {
-                        reg.update();
-                    }, 60000);
-                    
-                    // Listen for updates
-                    reg.addEventListener('updatefound', () => {
-                        const newWorker = reg.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                // New service worker available
-                                showUpdateNotification();
-                            }
-                        });
+                });
+            }).then(reg => {
+                registration = reg;
+                console.log('Service Worker registered:', reg.scope);
+                
+                // Force update
+                reg.update();
+                
+                // Listen for updates
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
                     });
-                })
-                .catch(err => console.log('Service Worker registration failed:', err));
+                });
+            }).catch(err => {
+                console.error('Service Worker registration failed:', err);
             });
         }
 
         // Show update notification
         function showUpdateNotification() {
             const notification = document.getElementById('updateNotification');
-            notification.style.display = 'block';
+            if (notification) {
+                notification.style.display = 'block';
+            }
         }
 
         // Handle update button
-        document.getElementById('updateBtn').addEventListener('click', () => {
-            if (registration && registration.waiting) {
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-            window.location.reload();
-        });
-
-        // Listen for controller change
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                window.location.reload();
+        const updateBtn = document.getElementById('updateBtn');
+        if (updateBtn) {
+            updateBtn.addEventListener('click', () => {
+                if (registration && registration.waiting) {
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                window.location.reload(true);
             });
         }
 
@@ -223,8 +212,45 @@
             e.preventDefault();
             deferredPrompt = e;
             
-            // Show install prompt if not already installed
             if (!window.matchMedia('(display-mode: standalone)').matches) {
                 installPrompt.style.display = 'block';
             }
         });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response: ${outcome}`);
+                    deferredPrompt = null;
+                }
+                installPrompt.style.display = 'none';
+            });
+        }
+
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                installPrompt.style.display = 'none';
+                localStorage.setItem('installPromptDismissed', 'true');
+            });
+        }
+
+        if (localStorage.getItem('installPromptDismissed')) {
+            installPrompt.style.display = 'none';
+        }
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            installPrompt.style.display = 'none';
+        }
+
+        // Prevent pull-to-refresh
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) return;
+            if (window.scrollY === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
